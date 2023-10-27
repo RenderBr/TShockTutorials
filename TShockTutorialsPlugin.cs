@@ -21,41 +21,6 @@ namespace TShockTutorials
         {
 
         }
-
-        private void OnPlayerLogin(PlayerPostLoginEventArgs eventArgs)
-        {
-            // retrieve player from args
-            var player = eventArgs.Player;
-
-            // normally i'd recommend checking if the player is valid anytime a player is accessed
-            // however, since we know the player just logged in we can assume they are real & 
-            // should be logged in
-
-            // send the player a nice little greeting
-            player.SendMessage($"Welcome to our server, {player.Name}, thanks for logging in!" +
-                $"Here are some nice buffs :)", Color.Aquamarine);
-
-            // apply some buffs to the player
-            player.SetBuff(BuffID.Swiftness);
-            player.SetBuff(BuffID.Regeneration, 1200);
-        }
-
-        private void OnServerReload(ReloadEventArgs eventArgs)
-        {
-            var playerReloading = eventArgs.Player;
-
-            try
-            {
-                PluginSettings.Load();
-                playerReloading.SendSuccessMessage("[TutorialPlugin] Config reloaded!");
-            }
-            catch (Exception ex)
-            {
-                playerReloading.SendErrorMessage("There was an issue loading the config!");
-                TShock.Log.ConsoleError(ex.ToString());
-            }
-        }
-
         public override void Initialize()
         {
             // register our config
@@ -63,56 +28,30 @@ namespace TShockTutorials
 
             // new Command("permission.nodes", "add.as.many", "as.you.like", ourCommandMethod, "these", "are", "aliases");
             Commands.ChatCommands.Add(new Command("tutorial.command", TutorialCommand, "tutorial", "tcmd"));
+            Commands.ChatCommands.Add(new Command("tutorial.configex", ConfigExemplarCommand, "confex"));
 
-            GeneralHooks.ReloadEvent += OnServerReload;
-            PlayerHooks.PlayerPostLogin += OnPlayerLogin;
+            // register our hooks
+            EventManager.RegisterAll(this);
 
-            Hooks.NPC.DropLoot += DropLoot;
-
-            GetDataHandlers.ChestOpen += OnChestOpen;
         }
 
-        private void OnPlayerDisconnect(LeaveEventArgs args)
+        private void ConfigExemplarCommand(CommandArgs args)
         {
             // retrieve our player
-            var player = Main.player[args.Who];
+            var player = args.Player;
 
-            // let's see if we can access the player
-            if(player == null) return;
+            // retrieve all of our fun facts
+            var funFacts = Config.WeirdFacts;
 
-            // let's announce to everyone they are about to die
-            TSPlayer.All.SendMessage($"{player.name} has left, so you will all die! For some reason...", Color.Tomato);
+            // retrieve one fun fact randomly
+            var funFact = funFacts[Main.rand.Next(0, funFacts.Count)];
 
-            // kill every player
-            foreach(TSPlayer plr in TShock.Players)
-            {
-                // skip player if cant be accessed
-                if(plr == null) continue;
+            // send the player the fact
+            player.SendMessage($"{Config.GameName}", Color.LightCoral);
+            player.SendMessage($"{funFact}", Color.PaleGoldenrod);
 
-                // kill valid players muahahaah
-                plr.KillPlayer();
-            }
-        }
-
-        private void DropLoot(object _, Hooks.NPC.DropLootEventArgs e)
-        {
-            TSPlayer.All.SendMessage($"Cancelled loot drop for: {e.Npc.FullName}", Color.IndianRed);
-            e.Result = HookResult.Cancel;
-        }
-
-        public void OnChestOpen(object _, GetDataHandlers.ChestOpenEventArgs args)
-        {
-            // find the chest at the coordinates
-            Chest chest = Main.chest.FirstOrDefault(x => x.x == args.X && x.y == args.Y);
-
-            // if we cannot find the chest, return the method (stop executing any further)
-            if (chest == null) return;
-
-            // set the sixth item in the chest to an empty item
-            chest.item[5] = new Item();
-
-            // send appropriate packet to update chest item for all players
-            TSPlayer.All.SendData(PacketTypes.ChestItem, "", Main.chest.ToList().IndexOf(chest), 5, 0, 0, new Item().netID);
+            // give the player a zenith with a quantity of our "cool" number
+            player.GiveItem(ItemID.Zenith, Config.ChosenNumber, PrefixID.Annoying);
         }
 
         private void TutorialCommand(CommandArgs args)
