@@ -11,6 +11,7 @@ namespace TShockTutorials
     [ApiVersion(2, 1)]
     public class TShockTutorialsPlugin : TerrariaPlugin
     {
+        public static PluginSettings Config => PluginSettings.Config;
         public override string Author => "Average";
         public override string Name => "TShock Tutorial Plugin";
         public override string Description => "A sample plugin for educating aspiring TShock developers.";
@@ -45,9 +46,7 @@ namespace TShockTutorials
 
             try
             {
-                // pretend we are loading a config here...
-                // something like Config.Load();
-
+                PluginSettings.Load();
                 playerReloading.SendSuccessMessage("[TutorialPlugin] Config reloaded!");
             }
             catch (Exception ex)
@@ -59,6 +58,9 @@ namespace TShockTutorials
 
         public override void Initialize()
         {
+            // register our config
+            PluginSettings.Load();
+
             // new Command("permission.nodes", "add.as.many", "as.you.like", ourCommandMethod, "these", "are", "aliases");
             Commands.ChatCommands.Add(new Command("tutorial.command", TutorialCommand, "tutorial", "tcmd"));
 
@@ -68,8 +70,6 @@ namespace TShockTutorials
             Hooks.NPC.DropLoot += DropLoot;
 
             GetDataHandlers.ChestOpen += OnChestOpen;
-
-            ServerApi.Hooks.ServerLeave.Register(this, OnPlayerDisconnect);
         }
 
         private void OnPlayerDisconnect(LeaveEventArgs args)
